@@ -20,14 +20,15 @@ class Decoder(private val file: File) : RecordMesgListener {
         return records
     }
 
-    fun getAvailableFields(threshold: Float = 0.9F): List<Int> {
+    fun getAvailableFieldNums(threshold: Float = 0.75F): List<Int> {
         return fieldsCount
             .filter { it.value >= records.size * threshold }
             .map { it.key }
+            .sorted()
     }
 
-    fun getAvailableFieldNames(threshold: Float = 0.9F): List<String> {
-        return getAvailableFields(threshold)
+    fun getAvailableFieldNames(threshold: Float = 0.75F): List<String> {
+        return getAvailableFieldNums(threshold)
             .map { Factory.createField(MesgNum.RECORD, it).name }
     }
 
@@ -38,7 +39,7 @@ class Decoder(private val file: File) : RecordMesgListener {
 
         Record.fromFitMessage(mesg)?.let { record ->
             records.add(record)
-            record.fields.forEach { f ->
+            record.getFields().forEach { f ->
                 fieldsCount.merge(f, 1, Int::plus)
             }
         }
