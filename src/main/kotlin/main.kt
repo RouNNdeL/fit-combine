@@ -43,11 +43,12 @@ fun main(args: Array<String>) {
         ArrayList(masterDecoder.getAvailableFieldNums())
     )
 
-    println("Attempting to detect time shift based on GPS path correlation")
+    println("Attempting to detect time shift based on GPS path correlation (this may take a while)")
     var timeShift = combiner.detectTimeShift(ArrayList(slaveDecoder.getRecords()))
 
     if (timeShift == null) {
-        println("Unable to detect time shift. Please input desired time shift below")
+        println("Unable to detect time shift (no gps data or files are not from the same ride)")
+        println("You can still input the time shift manually, but this is not recommended")
         while (timeShift == null) {
             val line = readLine()!!
             try {
@@ -113,7 +114,13 @@ fun main(args: Array<String>) {
         average = false
     }
 
-    combiner.mergeRecords(ArrayList(slaveDecoder.getRecords()), fieldsToMerge, timeShift, average)
+    var trim = true
+    println("Do you want to trim the records to match the shorter activity? [y]/n")
+    if(readLine() == "n") {
+        trim = false
+    }
+
+    combiner.mergeRecords(ArrayList(slaveDecoder.getRecords()), fieldsToMerge, timeShift, average, trim)
     println("Records have been merged")
     println()
 
@@ -162,6 +169,7 @@ fun main(args: Array<String>) {
         combiner.cleanUp(requiredFields, missingStrategy)
     }
 
+    println()
     println("Where do you want to save the file?")
     val savePath = readLine()
     val encoder = Encoder(File(savePath ?: "./combined.fit"), File(masterFile), combiner.records)

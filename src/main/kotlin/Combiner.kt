@@ -3,8 +3,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
-       init {
+class Combiner(val records: MutableList<Record>, fields: List<Int>) {
+    val fields: MutableSet<Int> = HashSet(fields)
+
+    init {
         if (records.isEmpty()) {
             throw IllegalArgumentException("Records may not be empty")
         }
@@ -14,7 +16,7 @@ class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
         requiredFields: List<Int>,
         missingStrategy: MissingStrategy = MissingStrategy.INTERPOLATE
     ) {
-        if(missingStrategy == MissingStrategy.SKIP) {
+        if (missingStrategy == MissingStrategy.SKIP) {
             return
         }
 
@@ -42,7 +44,8 @@ class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
                         MissingStrategy.SET_ZERO -> {
                             record.setField(it, 0)
                         }
-                        MissingStrategy.SKIP -> {}
+                        MissingStrategy.SKIP -> {
+                        }
                     }
                 } else {
                     lastRecord = record
@@ -55,7 +58,7 @@ class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
     }
 
     fun mergeRecords(
-        otherRecords: List<Record>,
+        otherRecords: MutableList<Record>,
         fields: List<Int>,
         timeShift: Long = detectTimeShift(otherRecords) ?: 0,
         average: Boolean = false,
@@ -64,24 +67,9 @@ class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
         var i = 0
         var j = 0
 
-        val startTimestamp = max(records.first().timestamp, otherRecords.first().timestamp + timeShift)
-        val endTimestamp = min(records.last().timestamp, otherRecords.last().timestamp + timeShift)
-
         while (i < records.size && j < otherRecords.size) {
-            val otherTimestampShifted = otherRecords[j].timestamp + timeShift
             val timestamp = records[i].timestamp
-
-            if (trimRecords) {
-                if (timestamp < startTimestamp || timestamp > endTimestamp) {
-                    i++
-                    continue
-                }
-
-                if (otherTimestampShifted < startTimestamp || otherTimestampShifted > endTimestamp) {
-                    j++
-                    continue
-                }
-            }
+            val otherTimestampShifted = otherRecords[j].timestamp + timeShift
 
             when {
                 timestamp > otherTimestampShifted -> {
@@ -96,6 +84,20 @@ class Combiner(val records: MutableList<Record>, val fields: MutableList<Int>) {
                     records[i].combine(otherRecords[j], fields, average)
                     i++
                     j++
+                }
+            }
+        }
+
+        if (trimRecords) {
+            val startTimestamp = max(records.first().timestamp, otherRecords.first().timestamp + timeShift)
+            val endTimestamp = min(records.last().timestamp, otherRecords.last().timestamp + timeShift)
+
+            var k = 0
+            while (k < records.size) {
+                if (records[k].timestamp < startTimestamp || records[k].timestamp > endTimestamp) {
+                    records.removeAt(k)
+                } else {
+                    k++
                 }
             }
         }
