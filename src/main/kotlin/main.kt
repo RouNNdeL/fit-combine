@@ -1,7 +1,6 @@
 import com.garmin.fit.Factory
 import com.garmin.fit.MesgNum
 import java.io.File
-import java.lang.RuntimeException
 
 fun main(args: Array<String>) {
     val file0 = args[0]
@@ -18,13 +17,13 @@ fun main(args: Array<String>) {
     println("2. ${file1.split(File.separator).last()}")
     println()
     println("What file should be the master (1 or 2)?")
-    var masterFile: Int? = null
-    while (masterFile == null) {
+    var masterFileSelection: Int? = null
+    while (masterFileSelection == null) {
         val line = readLine()!!
         try {
             val int = line.toInt()
             if (int == 1 || int == 2) {
-                masterFile = int
+                masterFileSelection = int
             } else {
                 println("Please input 1 or 2")
             }
@@ -33,8 +32,11 @@ fun main(args: Array<String>) {
         }
     }
 
-    val masterDecoder = if (masterFile == 1) decoder0 else decoder1
-    val slaveDecoder = if (masterFile != 1) decoder0 else decoder1
+    val masterDecoder = if (masterFileSelection == 1) decoder0 else decoder1
+    val slaveDecoder = if (masterFileSelection != 1) decoder0 else decoder1
+
+    val masterFile = if (masterFileSelection == 1) args[0] else args[1]
+    val slaveFile = if (masterFileSelection != 1) args[0] else args[1]
 
     val combiner = Combiner(
         ArrayList(masterDecoder.getRecords()),
@@ -65,7 +67,7 @@ fun main(args: Array<String>) {
 
 
     println("File master contains following fields:")
-    printFields( masterFieldNums)
+    printFields(masterFieldNums)
     println()
 
     println("File slave contains following fields:")
@@ -126,7 +128,7 @@ fun main(args: Array<String>) {
         try {
             val int = line.toInt()
             if (int in 1..3) {
-                missingStrategy = when(int) {
+                missingStrategy = when (int) {
                     1 -> Combiner.MissingStrategy.INTERPOLATE
                     2 -> Combiner.MissingStrategy.SET_ZERO
                     3 -> Combiner.MissingStrategy.REMOVE
@@ -141,7 +143,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    if(missingStrategy != Combiner.MissingStrategy.SKIP) {
+    if (missingStrategy != Combiner.MissingStrategy.SKIP) {
         println("Those fields are present in the merged file:")
         printFields(combiner.fields.sorted())
 
@@ -149,7 +151,7 @@ fun main(args: Array<String>) {
         var requiredFields: List<Int>? = null
         while (requiredFields == null) {
             val ints = readLine()!!.split(",").map { it.trim().toInt() }
-            if(!combiner.fields.containsAll(ints)) {
+            if (!combiner.fields.containsAll(ints)) {
                 println("Please input valid field numbers")
                 continue
             }
@@ -160,8 +162,10 @@ fun main(args: Array<String>) {
         combiner.cleanUp(requiredFields, missingStrategy)
     }
 
-
-
+    println("Where do you want to save the file?")
+    val savePath = readLine()
+    val encoder = Encoder(File(savePath ?: "./combined.fit"), File(masterFile), combiner.records)
+    encoder.encode()
 }
 
 fun printFields(fields: Iterable<Int>) {

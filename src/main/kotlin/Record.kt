@@ -56,6 +56,10 @@ data class Record(
         }
     }
 
+    fun getOriginalRecord(): RecordMesg {
+        return RecordMesg(originalRecord)
+    }
+
     fun interpolate(field: Int, start: Record, end: Record, fraction: Float) {
         val startField = start.originalRecord.getField(field)
         val endField = end.originalRecord.getField(field)
