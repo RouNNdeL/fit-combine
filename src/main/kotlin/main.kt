@@ -1,8 +1,14 @@
 import com.garmin.fit.Factory
 import com.garmin.fit.MesgNum
 import java.io.File
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
+    if(args.size != 2) {
+        println("2 arguments expected (files)")
+        exitProcess(-1)
+    }
+
     val file0 = args[0]
     val file1 = args[1]
 

@@ -25,6 +25,8 @@
 hs_err_pid*
 
 out
+
+*.fit
 ### Gradle template
 .gradle
 /build/
