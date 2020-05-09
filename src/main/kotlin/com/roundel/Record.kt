@@ -1,3 +1,5 @@
+package com.roundel
+
 import com.garmin.fit.*
 import kotlin.math.pow
 
@@ -92,7 +94,10 @@ data class Record(
         fields.forEach {
             if (sourceRecord.hasField(it)) {
                 if (average && originalRecord.hasField(it)) {
-                    averageFields(originalRecord.getField(it), sourceRecord.getField(it))
+                    averageFields(
+                        originalRecord.getField(it),
+                        sourceRecord.getField(it)
+                    )
                 } else {
                     originalRecord.setField(sourceRecord.getField(it))
                 }

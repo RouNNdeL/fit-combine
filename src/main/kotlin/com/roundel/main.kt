@@ -1,12 +1,11 @@
+package com.roundel
+
 import com.garmin.fit.Factory
 import com.garmin.fit.MesgNum
 import com.garmin.fit.RecordMesg
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatter.ofPattern
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
