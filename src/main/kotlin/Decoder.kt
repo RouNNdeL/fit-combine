@@ -1,6 +1,9 @@
 import com.garmin.fit.*
 import java.io.File
 import java.io.FileInputStream
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class Decoder(private val file: File) : RecordMesgListener {
     private val records = ArrayList<Record>()
@@ -25,6 +28,14 @@ class Decoder(private val file: File) : RecordMesgListener {
             .filter { it.value >= records.size * threshold }
             .map { it.key }
             .sorted()
+    }
+
+    fun getActivityDate(): Date? {
+        return if (records.isEmpty()) {
+            null
+        } else {
+            DateTime(records[0].timestamp).date
+        }
     }
 
     fun getAvailableFieldNames(threshold: Float = 0.75F): List<String> {

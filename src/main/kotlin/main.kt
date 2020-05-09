@@ -1,26 +1,49 @@
 import com.garmin.fit.Factory
 import com.garmin.fit.MesgNum
+import com.garmin.fit.RecordMesg
 import java.io.File
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatter.ofPattern
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    if(args.size != 2) {
-        println("2 arguments expected (files)")
-        exitProcess(-1)
+    val file0: File
+    val file1: File
+
+    when (args.size) {
+        1 -> {
+            val files = getLatestFiles(args[0])
+            if (files == null || files.size < 2) {
+                println("Directory does not contain 2 files")
+                exitProcess(-1)
+            }
+
+            file0 = files[0]
+            file1 = files[1]
+        }
+        2 -> {
+            file0 = File(args[0])
+            file1 = File(args[1])
+        }
+        else -> {
+            println("1 or 2 arguments expected (1: dir; 2: file0 file1)")
+            exitProcess(-1)
+        }
     }
 
-    val file0 = args[0]
-    val file1 = args[1]
 
-    val decoder0 = Decoder(File(file0))
-    val decoder1 = Decoder(File(file1))
+    val decoder0 = Decoder(file0)
+    val decoder1 = Decoder(file1)
 
     decoder0.decode()
     decoder1.decode()
 
     println("Files:")
-    println("1. ${file0.split(File.separator).last()}")
-    println("2. ${file1.split(File.separator).last()}")
+    println("1. ${file0.name}")
+    println("2. ${file1.name}")
     println()
     println("What file should be the master (1 or 2)?")
     var masterFileSelection: Int? = null
@@ -41,8 +64,8 @@ fun main(args: Array<String>) {
     val masterDecoder = if (masterFileSelection == 1) decoder0 else decoder1
     val slaveDecoder = if (masterFileSelection != 1) decoder0 else decoder1
 
-    val masterFile = if (masterFileSelection == 1) args[0] else args[1]
-    val slaveFile = if (masterFileSelection != 1) args[0] else args[1]
+    val masterFile = if (masterFileSelection == 1) file0 else file1
+    val slaveFile = if (masterFileSelection != 1) file0 else file1
 
     val combiner = Combiner(
         ArrayList(masterDecoder.getRecords()),
@@ -84,18 +107,23 @@ fun main(args: Array<String>) {
     println("What fields do you want to merge from slave into master? (comma separated numbers)")
     var fieldsToMerge: List<Int>? = null
     while (fieldsToMerge == null) {
-        val ints = readLine()!!.split(",").map { it.trim().toInt() }
-        if (ints.isEmpty()) {
-            println("Please input at least on field")
-            continue
-        }
+        try {
+            val ints = readLine()!!.split(",").map { it.trim().toInt() }
+            if (ints.isEmpty()) {
+                println("Please input at least on field")
+                continue
+            }
 
-        if (!slaveFieldNums.containsAll(ints)) {
+            if (!slaveFieldNums.containsAll(ints)) {
+                println("Please input valid field numbers")
+                continue
+            }
+
+            fieldsToMerge = ints
+        } catch (e: NumberFormatException) {
             println("Please input valid field numbers")
-            continue
         }
 
-        fieldsToMerge = ints
     }
 
     var average: Boolean? = null
@@ -121,8 +149,8 @@ fun main(args: Array<String>) {
     }
 
     var trim = true
-    println("Do you want to trim the records to match the shorter activity? [y]/n")
-    if(readLine() == "n") {
+    println("Do you want to trim the records to match the shorter activity? [Y/n]")
+    if (readLine() == "n") {
         trim = false
     }
 
@@ -163,25 +191,52 @@ fun main(args: Array<String>) {
         println("Which fields should be required in all records? (comma separated numbers)")
         var requiredFields: List<Int>? = null
         while (requiredFields == null) {
-            val ints = readLine()!!.split(",").map { it.trim().toInt() }
-            if (!combiner.fields.containsAll(ints)) {
-                println("Please input valid field numbers")
-                continue
-            }
+            requiredFields = try {
+                val ints = readLine()!!.split(",").map { it.trim().toInt() }
+                if (!combiner.fields.containsAll(ints)) {
+                    println("Please input valid field numbers")
+                    continue
+                }
 
-            requiredFields = ints
+                ints
+            } catch (e: NumberFormatException) {
+                emptyList()
+            }
         }
 
         combiner.cleanUp(requiredFields, missingStrategy)
     }
 
     println()
+    var saveDir = "."
+    if (args.size == 1) {
+        println("Looks like your files have been automatically loaded from a directory.")
+        println("Do you want to save the resulting file there? [Y/n]")
+        if (readLine() != "n") {
+            saveDir = args[0]
+        }
+    }
+
     println("Where do you want to save the file?")
-    val savePath = readLine()
-    val encoder = Encoder(File(savePath ?: "./combined.fit"), File(masterFile), combiner.records)
+    var savePath: String = readLine() ?: ""
+    if (savePath.trim().isEmpty()) {
+        val formatter = SimpleDateFormat("yyyy_MM_dd")
+        savePath = "${formatter.format(masterDecoder.getActivityDate() ?: LocalDate.now())}_combined.fit"
+    }
+
+    val encoder = Encoder(File(saveDir, savePath), masterFile, combiner.records)
     encoder.encode()
 }
 
+fun getLatestFiles(dir: String, extension: String? = "fit", count: Int = 2): List<File>? {
+    val files: Array<File> = File(dir).listFiles { file ->
+        file != null && file.isFile && (extension == null || file.extension.toLowerCase() == "fit")
+    } ?: return null
+    return files.sortedByDescending { file -> file.lastModified() }.take(count)
+}
+
 fun printFields(fields: Iterable<Int>) {
-    fields.forEach { f -> println("  ${f}: ${Factory.createField(MesgNum.RECORD, f).name}") }
+    fields
+        .filter { it != RecordMesg.TimestampFieldNum }
+        .forEach { f -> println("  ${f}: ${Factory.createField(MesgNum.RECORD, f).name}") }
 }
