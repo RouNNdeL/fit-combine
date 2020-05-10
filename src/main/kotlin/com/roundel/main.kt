@@ -33,12 +33,20 @@ fun main(args: Array<String>) {
         }
     }
 
-
     val decoder0 = Decoder(file0)
     val decoder1 = Decoder(file1)
 
     decoder0.decode()
     decoder1.decode()
+
+    if (decoder0.getRecords().isEmpty()) {
+        println("File ${file0.name} does not contain any records")
+        exitProcess(-1)
+    }
+    if (decoder1.getRecords().isEmpty()) {
+        println("File ${file1.name} does not contain any records")
+        exitProcess(-1)
+    }
 
     println("Files:")
     println("1. ${file0.name}")
@@ -64,7 +72,7 @@ fun main(args: Array<String>) {
     val slaveDecoder = if (masterFileSelection != 1) decoder0 else decoder1
 
     val masterFile = if (masterFileSelection == 1) file0 else file1
-    val slaveFile = if (masterFileSelection != 1) file0 else file1
+    // val slaveFile = if (masterFileSelection != 1) file0 else file1
 
     val combiner = Combiner(
         ArrayList(masterDecoder.getRecords()),
