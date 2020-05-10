@@ -9,20 +9,22 @@ import java.time.LocalDate
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val file0: File
-    val file1: File
+    Runtime.getRuntime().addShutdownHook(Thread {
+        println("No files have been written to disk")
+        println("Exiting...")
+    })
+
+    var file0: File? = null
+    var file1: File? = null
+
+    var dir: String? = null
 
     when (args.size) {
-        1 -> {
-            val files = getLatestFiles(args[0])
-            if (files == null || files.size < 2) {
-                println("Directory does not contain 2 files")
-                exitProcess(-1)
-            }
-
-            file0 = files[0]
-            file1 = files[1]
+        0 -> {
+            println("Attempting to load the latest 2 files from the current directory")
+            dir = "."
         }
+        1 -> dir = args[0]
         2 -> {
             file0 = File(args[0])
             file1 = File(args[1])
@@ -31,6 +33,21 @@ fun main(args: Array<String>) {
             println("1 or 2 arguments expected (1: dir; 2: file0 file1)")
             exitProcess(-1)
         }
+    }
+
+    if(dir != null) {
+        val files = getLatestFiles(dir)
+        if (files == null || files.size < 2) {
+            println("Directory does not contain 2 files")
+            exitProcess(-1)
+        }
+
+        file0 = files[0]
+        file1 = files[1]
+    }
+
+    if(file0 == null || file1 == null) {
+        throw RuntimeException("Files should be initialized by this point")
     }
 
     val decoder0 = Decoder(file0)
@@ -55,7 +72,7 @@ fun main(args: Array<String>) {
     println("What file should be the master (1 or 2)?")
     var masterFileSelection: Int? = null
     while (masterFileSelection == null) {
-        val line = readLine()!!
+        val line = readLine() ?: exitProcess(-1)
         try {
             val int = line.toInt()
             if (int == 1 || int == 2) {
@@ -86,7 +103,7 @@ fun main(args: Array<String>) {
         println("Unable to detect time shift (no gps data or files are not from the same ride)")
         println("You can still input the time shift manually, but this is not recommended")
         while (timeShift == null) {
-            val line = readLine()!!
+            val line = readLine() ?: exitProcess(-1)
             try {
                 timeShift = line.toLong()
             } catch (e: NumberFormatException) {
@@ -115,7 +132,8 @@ fun main(args: Array<String>) {
     var fieldsToMerge: List<Int>? = null
     while (fieldsToMerge == null) {
         try {
-            val ints = readLine()!!.split(",").map { it.trim().toInt() }
+            val line = readLine() ?: exitProcess(-1)
+            val ints = line.split(",").map { it.trim().toInt() }
             if (ints.isEmpty()) {
                 println("Please input at least on field")
                 continue
@@ -139,7 +157,7 @@ fun main(args: Array<String>) {
         println("1. Overwrite master with slave")
         println("2. Average master and slave")
         while (average == null) {
-            val line = readLine()!!
+            val line = readLine()?: exitProcess(-1)
             try {
                 val int = line.toInt()
                 if (int == 1 || int == 2) {
@@ -172,7 +190,7 @@ fun main(args: Array<String>) {
     println("4. Skip (values will still be missing)")
     var missingStrategy: Combiner.MissingStrategy? = null
     while (missingStrategy == null) {
-        val line = readLine()!!
+        val line = readLine() ?: exitProcess(-1)
         try {
             val int = line.toInt()
             if (int in 1..3) {
@@ -199,7 +217,8 @@ fun main(args: Array<String>) {
         var requiredFields: List<Int>? = null
         while (requiredFields == null) {
             requiredFields = try {
-                val ints = readLine()!!.split(",").map { it.trim().toInt() }
+                val line = readLine() ?: exitProcess(-1)
+                val ints = line.split(",").map { it.trim().toInt() }
                 if (!combiner.fields.containsAll(ints)) {
                     println("Please input valid field numbers")
                     continue
@@ -216,7 +235,7 @@ fun main(args: Array<String>) {
 
     println()
     var saveDir = "."
-    if (args.size == 1) {
+    if (dir != null) {
         println("Looks like your files have been automatically loaded from a directory.")
         println("Do you want to save the resulting file there? [Y/n]")
         if (readLine() != "n") {
