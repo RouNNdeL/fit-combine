@@ -1,6 +1,7 @@
 package com.roundel
 
 import com.garmin.fit.Factory
+import com.garmin.fit.LapMesg
 import com.garmin.fit.MesgNum
 import com.garmin.fit.RecordMesg
 import java.io.File
@@ -9,11 +10,6 @@ import java.time.LocalDate
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    Runtime.getRuntime().addShutdownHook(Thread {
-        println("No files have been written to disk")
-        println("Exiting...")
-    })
-
     var file0: File? = null
     var file1: File? = null
 
@@ -234,12 +230,30 @@ fun main(args: Array<String>) {
     }
 
     println()
+    val masterLaps = ArrayList<LapMesg>()
+    val slaveLaps = ArrayList<LapMesg>()
+
+    if(masterDecoder.laps.isNotEmpty()) {
+        println("Master file has ${masterDecoder.laps.size} laps. Do you want to copy those into the combined file? [Y/n]")
+        if(readLine() != "n") {
+            masterLaps.addAll(masterDecoder.laps)
+        }
+    }
+
+    if(slaveDecoder.laps.isNotEmpty()) {
+        println("Slave file has ${slaveDecoder.laps.size} laps. Do you want to copy those into the combined file? [Y/n]")
+        if(readLine() != "n") {
+            slaveLaps.addAll(slaveDecoder.laps)
+        }
+    }
+
+    println()
     var saveDir = "."
     if (dir != null) {
         println("Looks like your files have been automatically loaded from a directory.")
         println("Do you want to save the resulting file there? [Y/n]")
         if (readLine() != "n") {
-            saveDir = args[0]
+            saveDir = dir
         }
     }
 
@@ -251,6 +265,8 @@ fun main(args: Array<String>) {
     }
 
     val encoder = Encoder(File(saveDir, savePath), masterFile, combiner.records)
+    encoder.addLaps(masterLaps)
+    encoder.addLaps(slaveLaps, timeShift)
     encoder.encode()
 }
 

@@ -7,8 +7,9 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-class Decoder(private val file: File) : RecordMesgListener {
+class Decoder(private val file: File) : RecordMesgListener, LapMesgListener, SegmentLapMesgListener {
     private val records = ArrayList<Record>()
+    val laps = ArrayList<LapMesg>()
 
     private val fieldsCount = HashMap<Int, Int>()
 
@@ -16,7 +17,9 @@ class Decoder(private val file: File) : RecordMesgListener {
         val decode = Decode()
         val messageBroadcaster = MesgBroadcaster(decode)
 
-        messageBroadcaster.addListener(this)
+        messageBroadcaster.addListener(this as RecordMesgListener)
+        messageBroadcaster.addListener(this as LapMesgListener)
+        messageBroadcaster.addListener(this as SegmentLapMesgListener)
 
         decode.read(FileInputStream(file), messageBroadcaster)
     }
@@ -56,5 +59,15 @@ class Decoder(private val file: File) : RecordMesgListener {
                 fieldsCount.merge(f, 1, Int::plus)
             }
         }
+    }
+
+    override fun onMesg(msg: LapMesg?) {
+        msg?.let {
+            laps.add(it)
+        }
+    }
+
+    override fun onMesg(mesg: SegmentLapMesg?) {
+        println(mesg)
     }
 }
