@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    if(dir != null) {
+    if (dir != null) {
         val files = getLatestFiles(dir)
         if (files == null || files.size < 2) {
             println("Directory does not contain 2 files")
@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
         file1 = files[1]
     }
 
-    if(file0 == null || file1 == null) {
+    if (file0 == null || file1 == null) {
         throw RuntimeException("Files should be initialized by this point")
     }
 
@@ -153,7 +153,7 @@ fun main(args: Array<String>) {
         println("1. Overwrite master with slave")
         println("2. Average master and slave")
         while (average == null) {
-            val line = readLine()?: exitProcess(-1)
+            val line = readLine() ?: exitProcess(-1)
             try {
                 val int = line.toInt()
                 if (int == 1 || int == 2) {
@@ -171,7 +171,7 @@ fun main(args: Array<String>) {
 
     var trim = true
     println("Do you want to trim the records to match the shorter activity? [Y/n]")
-    if (readLine() == "n") {
+    if (readLine()?.toLowerCase() == "n") {
         trim = false
     }
 
@@ -233,16 +233,26 @@ fun main(args: Array<String>) {
     val masterLaps = ArrayList<LapMesg>()
     val slaveLaps = ArrayList<LapMesg>()
 
-    if(masterDecoder.laps.isNotEmpty()) {
+    val masterHasLaps = masterDecoder.laps.size > 1
+    val slaveHasLaps = slaveDecoder.laps.size > 1
+
+    if (masterHasLaps && slaveHasLaps) {
+        println("Both files have laps master: ${masterDecoder.laps.size}, slave: ${slaveDecoder.laps.size}")
+        println("Only on of those can be selected to copy the laps from, " +
+                "which one would you like to choose (none, master, slave)? [N/m/s]")
+        if (readLine()?.toLowerCase() == "m") {
+            masterLaps.addAll(masterDecoder.laps)
+        } else if (readLine()?.toLowerCase() == "s") {
+            slaveLaps.addAll(slaveDecoder.laps)
+        }
+    } else if(masterHasLaps) {
         println("Master file has ${masterDecoder.laps.size} laps. Do you want to copy those into the combined file? [Y/n]")
-        if(readLine() != "n") {
+        if (readLine()?.toLowerCase() != "n") {
             masterLaps.addAll(masterDecoder.laps)
         }
-    }
-
-    if(slaveDecoder.laps.isNotEmpty()) {
+    } else if (slaveHasLaps) {
         println("Slave file has ${slaveDecoder.laps.size} laps. Do you want to copy those into the combined file? [Y/n]")
-        if(readLine() != "n") {
+        if (readLine()?.toLowerCase() != "n") {
             slaveLaps.addAll(slaveDecoder.laps)
         }
     }
@@ -252,7 +262,7 @@ fun main(args: Array<String>) {
     if (dir != null) {
         println("Looks like your files have been automatically loaded from a directory.")
         println("Do you want to save the resulting file there? [Y/n]")
-        if (readLine() != "n") {
+        if (readLine()?.toLowerCase() != "n") {
             saveDir = dir
         }
     }

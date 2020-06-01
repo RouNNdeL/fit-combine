@@ -8,6 +8,9 @@ data class Record(
     private val originalRecord: RecordMesg
 ) {
     companion object {
+        val HAS_GPS_PREDICATE: (Record) -> Boolean =
+            { it.hasField(RecordMesg.PositionLongFieldNum) && it.hasField(RecordMesg.PositionLongFieldNum) }
+
         fun fromFitMessage(msg: RecordMesg): Record? {
             val timestamp = msg.getField(RecordMesg.TimestampFieldNum).longValue ?: return null
 

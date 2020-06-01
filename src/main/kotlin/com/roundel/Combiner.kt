@@ -9,9 +9,7 @@ class Combiner(val records: MutableList<Record>, fields: List<Int>) {
     val fields: MutableSet<Int> = HashSet(fields)
 
     init {
-        if (records.isEmpty()) {
-            throw IllegalArgumentException("Records may not be empty")
-        }
+        require(records.isNotEmpty()) { "Records may not be empty" }
     }
 
     fun cleanUp(
@@ -74,14 +72,8 @@ class Combiner(val records: MutableList<Record>, fields: List<Int>) {
             val otherTimestampShifted = otherRecords[j].timestamp + timeShift
 
             when {
-                timestamp > otherTimestampShifted -> {
-                    j++
-                }
-
-                timestamp < otherTimestampShifted -> {
-                    i++
-                }
-
+                timestamp > otherTimestampShifted -> j++
+                timestamp < otherTimestampShifted -> i++
                 else -> {
                     records[i].combine(otherRecords[j], fields, average)
                     i++
@@ -112,13 +104,9 @@ class Combiner(val records: MutableList<Record>, fields: List<Int>) {
         minOverlap: Float = 0.8F,
         maxStdDev: Double = 10_000.0
     ): Long? {
-        if (minOverlap > 1 || minOverlap < 0) {
-            throw IllegalArgumentException("minOverlap has to be in range 0-1")
-        }
+        require(minOverlap in (0f open 1f)) { "minOverlap has to be in range 0-1 (exclusive)" }
 
-        if (otherRecords.isEmpty()) {
-            throw IllegalArgumentException("Records may not be empty")
-        }
+        require(otherRecords.isNotEmpty()) { "Records may not be empty" }
 
         val last0 = records.last().timestamp
         val first0 = records.first().timestamp
@@ -129,6 +117,15 @@ class Combiner(val records: MutableList<Record>, fields: List<Int>) {
             last0 - first0,
             last1 - first1
         )).roundToInt()
+
+        val gpsRecords0 = records.filter(Record.HAS_GPS_PREDICATE).count()
+        val gpsRecords1 = otherRecords.filter(Record.HAS_GPS_PREDICATE).count()
+
+        if(gpsRecords0 > gpsRecords1 && gpsRecords0 * minOverlap > gpsRecords1) {
+            return null
+        } else if(gpsRecords1 * minOverlap > gpsRecords0) {
+            return null
+        }
 
         val startShift = first0 - first1 - maxOffset
         val endShift = last0 - last1 + maxOffset
